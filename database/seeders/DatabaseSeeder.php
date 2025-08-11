@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             GeoScopeSeeder::class,
             ProductTypeSeeder::class,
             ClientTypeSeeder::class,
+            UserSeeder::class
         ]);
     }
 }
