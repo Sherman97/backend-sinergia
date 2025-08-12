@@ -1,37 +1,34 @@
-# Imagen base PHP-FPM
-FROM php:8.1-fpm
+# Dockerfile para Render (un solo contenedor)
+FROM php:8.1-cli
 
-# Extensiones del sistema
+# Extensiones necesarias
 RUN apt-get update && apt-get install -y \
-    git unzip libpq-dev libzip-dev libonig-dev libxml2-dev vim \
-    && docker-php-ext-install pdo pdo_mysql zip
+    git unzip libzip-dev libonig-dev libxml2-dev \
+ && docker-php-ext-install pdo pdo_mysql zip \
+ && pecl install redis \
+ && docker-php-ext-enable redis \
+ && rm -rf /var/lib/apt/lists/*
 
-# Opcional: Redis PHP extension
-RUN pecl install redis \
-    && docker-php-ext-enable redis
-
-# Instalar Composer
+# Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
 
-# Copiamos composer.* primero para aprovechar caché
+# Copiamos composer.* primero para usar caché
 COPY composer.json composer.lock* ./
+RUN composer install --no-interaction --prefer-dist --no-progress --no-scripts
 
-# Instalar dependencias PHP (sin dev en prod; aquí dejamos ambas por simplicidad)
-RUN composer install --no-interaction --prefer-dist --no-scripts --no-progress
-
-# Copiar el proyecto
+# Copiamos el código
 COPY . .
 
-# Permisos para storage y cache
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache \
-    && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
+# Permisos para Laravel
+RUN chown -R www-data:www-data storage bootstrap/cache \
+ && chmod -R 775 storage bootstrap/cache
 
-# Usuario de ejecución
-USER www-data
+# Render te inyecta PORT en tiempo de ejecución
+ENV PORT=10000
+EXPOSE 10000
 
-# Exponer puerto PHP-FPM
-EXPOSE 9000
-
-CMD ["php-fpm"]
+# Importante: escuchar en 0.0.0.0:$PORT
+# Opcional: cachear config/rutas si compila
+CMD sh -lc "php artisan config:cache || true; php artisan route:cache || true; php -S 0.0.0.0:${PORT} -t public"
