@@ -1,0 +1,12 @@
+# Evitar llevarnos entornos locales
+.env
+.env.*
+# Evitar dependencias innecesarias
+node_modules
+vendor
+# Evitar metadatos de git
+.git
+.gitignore
+# Archivos temporales
+*.log
+*.cache
